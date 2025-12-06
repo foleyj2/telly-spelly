@@ -72,13 +72,13 @@ def install_application():
     if os.path.exists('requirements.txt'):
         shutil.copy2('requirements.txt', app_dir)
     
-    # Create launcher script with proper Python path
+    # Create launcher script with absolute Python path
+    python_path = sys.executable
     launcher_path = bin_dir / app_name
     with open(launcher_path, 'w') as f:
         f.write(f'''#!/bin/bash
-export PYTHONPATH="$HOME/.local/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages:$PYTHONPATH"
 cd {app_dir}
-exec python3 {app_dir}/main.py "$@"
+exec {python_path} {app_dir}/main.py "$@"
 ''')
     
     # Make launcher executable
