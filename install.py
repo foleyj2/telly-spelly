@@ -84,10 +84,17 @@ exec python3 {app_dir}/main.py "$@"
     # Make launcher executable
     launcher_path.chmod(0o755)
     
-    # Copy desktop file
+    # Copy desktop file and update Exec path
     desktop_file = "org.kde.telly_spelly.desktop"
     if os.path.exists(desktop_file):
         shutil.copy2(desktop_file, desktop_dir)
+        # Update Exec line to use absolute path
+        desktop_path = desktop_dir / desktop_file
+        with open(desktop_path, 'r') as f:
+            desktop_content = f.read()
+        desktop_content = desktop_content.replace('Exec=telly-spelly', f'Exec={launcher_path}')
+        with open(desktop_path, 'w') as f:
+            f.write(desktop_content)
     else:
         print(f"Warning: Could not find {desktop_file}")
     
