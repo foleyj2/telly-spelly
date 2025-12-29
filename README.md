@@ -82,6 +82,23 @@ python3 -c "import torch; print('CUDA available:', torch.cuda.is_available())"
 
 Without GPU, whisper will use CPU (slower but functional).
 
+### 4. Global Shortcuts (Input Group)
+
+Global keyboard shortcuts use `evdev` to capture key events, which requires read access to `/dev/input/event*` devices. Add your user to the `input` group:
+
+```bash
+sudo usermod -aG input $USER
+```
+
+**Log out and back in** for the group change to take effect.
+
+Verify with:
+```bash
+groups | grep input
+```
+
+> **Note:** Without this, the app will still work but global shortcuts won't function (you'll need to click the tray icon instead).
+
 ## Usage
 
 1. Launch "Telly Spelly" from your application menu or run:
