@@ -3,3 +3,4 @@ numpy
 pyaudio
 scipy
 keyboard
+evdev
