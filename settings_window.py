@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QComboBox,
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 import logging
 import keyboard
+import pyaudio
 from PyQt6.QtGui import QKeySequence
 from settings import Settings  # Add this import at the top
 
@@ -31,7 +32,7 @@ class ShortcutEdit(QLineEdit):
             return
             
         # Create key sequence
-        sequence = QKeySequence(modifiers | key)
+        sequence = QKeySequence(modifiers.value | key)
         self.setText(sequence.toString())
         self.recording = False
         self.clearFocus()
@@ -90,9 +91,12 @@ class SettingsWindow(QWidget):
         recording_layout = QFormLayout()
         
         self.device_combo = QComboBox()
-        self.device_combo.addItems(["Default Microphone"])  # You can populate this with actual devices
+        self._populate_audio_devices()
         current_mic = self.settings.get('mic_index', 0)
-        self.device_combo.setCurrentIndex(current_mic)
+        for i in range(self.device_combo.count()):
+            if self.device_combo.itemData(i) == current_mic:
+                self.device_combo.setCurrentIndex(i)
+                break
         self.device_combo.currentIndexChanged.connect(self.on_device_changed)
         recording_layout.addRow("Input Device:", self.device_combo)
         
@@ -138,6 +142,28 @@ class SettingsWindow(QWidget):
         self.whisper_model = None
         self.current_model = None
 
+    def _populate_audio_devices(self):
+        """Enumerate and populate audio input devices"""
+        try:
+            p = pyaudio.PyAudio()
+            self.device_combo.clear()
+            
+            default_info = p.get_default_input_device_info()
+            default_idx = default_info['index']
+            self.device_combo.addItem(f"Default ({default_info['name']})", default_idx)
+            
+            for i in range(p.get_device_count()):
+                try:
+                    info = p.get_device_info_by_index(i)
+                    if info['maxInputChannels'] > 0 and i != default_idx:
+                        self.device_combo.addItem(f"{info['name']}", i)
+                except Exception:
+                    pass
+            p.terminate()
+        except Exception as e:
+            logger.error(f"Failed to enumerate audio devices: {e}")
+            self.device_combo.addItem("Default Microphone", 0)
+
     def on_language_changed(self, index):
         language_code = self.lang_combo.currentData()
         try:
@@ -148,7 +174,9 @@ class SettingsWindow(QWidget):
 
     def on_device_changed(self, index):
         try:
-            self.settings.set('mic_index', index)
+            device_index = self.device_combo.itemData(index)
+            self.settings.set('mic_index', device_index)
+            logger.info(f"Microphone changed to device index: {device_index}")
         except ValueError as e:
             logger.error(f"Failed to set microphone: {e}")
             QMessageBox.warning(self, "Error", str(e))
